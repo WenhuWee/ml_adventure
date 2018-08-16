@@ -1,1 +1,5 @@
 .ropeproject
+
+bottlenecks*
+/Object Detection/ssdlite_mobilenet_v2_coco
+/Object Detection/keras-yolo3-master/data

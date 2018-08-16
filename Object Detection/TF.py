@@ -1,16 +1,10 @@
-#!/usr/local/bin/python3
 
 import numpy as np
 import os
-import six.moves.urllib as urllib
 import sys
-import tarfile
 import tensorflow as tf
-import zipfile
 
-from collections import defaultdict
-from io import StringIO
-from matplotlib import pyplot as plt
+import matplotlib.pyplot as plt
 from PIL import Image
 
 from object_detection.utils import ops as utils_ops
@@ -20,32 +14,13 @@ if tf.__version__ < '1.4.0':
         'Please upgrade your tensorflow installation to v1.4.* or later!')
 
 from object_detection.utils import label_map_util
-
 from object_detection.utils import visualization_utils as vis_util
 
-# What model to download.
 MODEL_NAME = 'ssdlite_mobilenet_v2_coco'
-MODEL_FILE = MODEL_NAME + '.tar.gz'
-DOWNLOAD_BASE = 'http://download.tensorflow.org/models/object_detection/'
-
-# Path to frozen detection graph. This is the actual model that is used for the object detection.
 PATH_TO_FROZEN_GRAPH = MODEL_NAME + '/frozen_inference_graph.pb'
-
-# List of the strings that is used to add correct label for each box.
-PATH_TO_LABELS = os.path.join('data', 'mscoco_label_map.pbtxt')
+PATH_TO_LABELS = MODEL_NAME + '/mscoco_label_map.pbtxt'
 
 NUM_CLASSES = 90
-
-if os.path.exists('./' + MODEL_NAME):
-    pass
-else:
-    opener = urllib.request.URLopener()
-    opener.retrieve(DOWNLOAD_BASE + MODEL_FILE, MODEL_FILE)
-    tar_file = tarfile.open(MODEL_FILE)
-    for file in tar_file.getmembers():
-        file_name = os.path.basename(file.name)
-    if 'frozen_inference_graph.pb' in file_name:
-        tar_file.extract(file, os.getcwd())
 
 detection_graph = tf.Graph()
 with detection_graph.as_default():
@@ -70,12 +45,13 @@ def load_image_into_numpy_array(image):
 # image1.jpg
 # image2.jpg
 # If you want to test the code with your images, just add path to the images to the TEST_IMAGE_PATHS.
-PATH_TO_TEST_IMAGES_DIR = 'test_images'
+PATH_TO_TEST_IMAGES_DIR = './test_images'
 TEST_IMAGE_PATHS = [os.path.join(
-    PATH_TO_TEST_IMAGES_DIR, 'image{}.jpg'.format(i)) for i in range(1, 3)]
+    PATH_TO_TEST_IMAGES_DIR, 'image{}.jpg'.format(i)) for i in range(1, 2)]
+print(TEST_IMAGE_PATHS)
 
 # Size, in inches, of the output images.
-IMAGE_SIZE = (450, 300)
+# IMAGE_SIZE = (450, 300)
 
 def run_inference_for_single_image(image, graph):
     with graph.as_default():
@@ -132,14 +108,17 @@ def run_inference_for_single_image(image, graph):
 
 
 for image_path in TEST_IMAGE_PATHS:
-    image = Image.open(image_path)
-    # the array based representation of the image will be used later in order to prepare the
-    # result image with boxes and labels on it.
+
+    # image = Image.open(image_path)
+    image = Image.open('./test_images/image4.jpg')
     image_np = load_image_into_numpy_array(image)
+
     # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
     image_np_expanded = np.expand_dims(image_np, axis=0)
+
     # Actual detection.
     output_dict = run_inference_for_single_image(image_np, detection_graph)
+    print(output_dict['detection_scores'])
     # Visualization of the results of a detection.
     vis_util.visualize_boxes_and_labels_on_image_array(image_np,
                                                        output_dict['detection_boxes'],
@@ -149,6 +128,10 @@ for image_path in TEST_IMAGE_PATHS:
                                                        instance_masks=output_dict.get(
                                                            'detection_masks'),
                                                        use_normalized_coordinates=True,
-                                                       line_thickness=8)
-    plt.figure(figsize=IMAGE_SIZE)
+                                                       line_thickness=8,
+                                                       min_score_thresh=0.1)
+
+    # plt.figure(figsize=IMAGE_SIZE)
     plt.imshow(image_np)
+    # plt.imshow(image)
+    plt.show()
