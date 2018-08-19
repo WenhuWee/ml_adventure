@@ -1,5 +1,12 @@
 .ropeproject
 
+*.record
+*.mp4
 bottlenecks*
 /Object Detection/ssdlite_mobilenet_v2_coco
 /Object Detection/keras-yolo3-master/data
+/Object Detection/data
+/Object Detection/checkpoint
+/Object Detection/model
+/Object Detection/out_images
+/Object Detection/train

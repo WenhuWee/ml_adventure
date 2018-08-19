@@ -6,21 +6,25 @@ import tensorflow as tf
 
 import matplotlib.pyplot as plt
 from PIL import Image
+from timeit import default_timer as timer
 
 from object_detection.utils import ops as utils_ops
 
-if tf.__version__ < '1.4.0':
-    raise ImportError(
-        'Please upgrade your tensorflow installation to v1.4.* or later!')
+# if tf.__version__ < '1.4.0':
+#     raise ImportError(
+#         'Please upgrade your tensorflow installation to v1.4.* or later!')
 
 from object_detection.utils import label_map_util
 from object_detection.utils import visualization_utils as vis_util
 
-MODEL_NAME = 'ssdlite_mobilenet_v2_coco'
-PATH_TO_FROZEN_GRAPH = MODEL_NAME + '/frozen_inference_graph.pb'
-PATH_TO_LABELS = MODEL_NAME + '/mscoco_label_map.pbtxt'
+# MODEL_NAME = 'ssdlite_mobilenet_v2_coco'
+# PATH_TO_FROZEN_GRAPH = MODEL_NAME + '/frozen_inference_graph.pb'
+# PATH_TO_LABELS = MODEL_NAME + '/mscoco_label_map.pbtxt'
+# NUM_CLASSES = 90
 
-NUM_CLASSES = 90
+PATH_TO_FROZEN_GRAPH = './checkpoint/save_17958/frozen_inference_graph.pb'
+PATH_TO_LABELS = './data/pascal_label_map.pbtxt'
+NUM_CLASSES = 1
 
 detection_graph = tf.Graph()
 with detection_graph.as_default():
@@ -39,7 +43,6 @@ category_index = label_map_util.create_category_index(categories)
 def load_image_into_numpy_array(image):
     (im_width, im_height) = image.size
     return np.array(image.getdata()).reshape((im_height, im_width, 3)).astype(np.uint8)
-
 
 # For the sake of simplicity we will use only 2 images:
 # image1.jpg
@@ -106,20 +109,85 @@ def run_inference_for_single_image(image, graph):
                 output_dict['detection_masks'] = output_dict['detection_masks'][0]
     return output_dict
 
+if True:
+    import cv2
+    video_path = './keras-yolo3-master/1_720.mp4'
+    vid = cv2.VideoCapture(video_path)
+    if not vid.isOpened():
+        raise IOError("Couldn't open webcam or video")
+    video_FourCC    = int(vid.get(cv2.CAP_PROP_FOURCC))
+    video_fps       = vid.get(cv2.CAP_PROP_FPS)
+    video_size      = (int(vid.get(cv2.CAP_PROP_FRAME_WIDTH)),
+                        int(vid.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+    accum_time = 0
+    curr_fps = 0
+    fps = "FPS: ??"
+    prev_time = timer()
 
-for image_path in TEST_IMAGE_PATHS:
+    isOutput = False
+    if isOutput:
+        out = cv2.VideoWriter('./out.mp4', video_FourCC, video_fps, video_size)
+    
+    count = 0
 
+    while True:
+        return_value, frame = vid.read()
+        image = Image.fromarray(frame)
+        image_np = load_image_into_numpy_array(image)
+
+        if True:
+        # if curr_fps == 12 :
+            image_np_expanded = np.expand_dims(image_np, axis=0)
+            output_dict = run_inference_for_single_image(image_np, detection_graph)
+            vis_util.visualize_boxes_and_labels_on_image_array(
+                image_np,
+                output_dict['detection_boxes'],
+                output_dict['detection_classes'],
+                output_dict['detection_scores'],
+                category_index,
+                instance_masks=output_dict.get('detection_masks'),
+                use_normalized_coordinates=True,
+                line_thickness=7,
+                min_score_thresh=0.3)
+
+            curr_time = timer()
+            exec_time = curr_time - prev_time
+            prev_time = curr_time
+            accum_time = accum_time + exec_time
+
+        count = count + 1
+        curr_fps = curr_fps + 1
+        if accum_time > 1:
+            accum_time = accum_time - 1
+            fps = "FPS: " + str(curr_fps)
+            curr_fps = 0
+
+        result = image_np
+
+        red, green, blue = result.T 
+        result = np.array([blue, green, red])
+        result = result.transpose()
+
+        im = Image.fromarray(result).convert('RGB')
+        im.save("./out_images/out" + str(count) + ".jpeg")
+
+        # cv2.putText(result, text=fps, org=(3, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.50, color=(255, 0, 0), thickness=2)
+        # cv2.namedWindow("result", cv2.WINDOW_NORMAL)
+        # cv2.imshow("result", result)
+        if isOutput:
+            out.write(result)
+        # if cv2.waitKey(1) & 0xFF == ord('q'):
+        #     break
+
+if  False:
     # image = Image.open(image_path)
-    image = Image.open('./test_images/image4.jpg')
+    image = Image.open('./test_images/image5.jpg')
     image_np = load_image_into_numpy_array(image)
 
-    # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
     image_np_expanded = np.expand_dims(image_np, axis=0)
 
-    # Actual detection.
     output_dict = run_inference_for_single_image(image_np, detection_graph)
-    print(output_dict['detection_scores'])
-    # Visualization of the results of a detection.
+    # print(output_dict['detection_scores'])
     vis_util.visualize_boxes_and_labels_on_image_array(image_np,
                                                        output_dict['detection_boxes'],
                                                        output_dict['detection_classes'],
@@ -135,3 +203,5 @@ for image_path in TEST_IMAGE_PATHS:
     plt.imshow(image_np)
     # plt.imshow(image)
     plt.show()
+
+# floyd run --gpu --env tensorflow-1.9 --data tigerfloyd/datasets/tf_lebronjames/1:/data --data tigerfloyd/datasets/sdd_mobilenet/1:/model --data tigerfloyd/datasets/tf_ob/3:tf_ob --tensorboard 'bash ./run.sh'

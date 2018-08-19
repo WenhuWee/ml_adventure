@@ -21,15 +21,14 @@ from keras.utils import multi_gpu_model
 class YOLO(object):
     _defaults = {
         # "model_path": 'model_data/yolov3-tiny.h5',
-        # "model_path": 'model_data/ep024-loss13.175-val_loss14.390.h5',
-        # "model_path": 'model_data/trained_weights_stage_0.h5',
-        "model_path": 'logs/000/081510trained_weights_stage_0.h5',
+        "model_path": 'model_data/trained_weights_stage_1.h5',
+        # "model_path": 'logs/000/081510trained_weights_stage_0.h5',
         # "model_path": 'model_data/yolo.h5',
         # "anchors_path": 'model_data/tiny_yolo_anchors.txt',
         "anchors_path": 'model_data/yolo_anchors.txt',
         # "classes_path": 'model_data/coco_classes.txt',
         "classes_path": 'model_data/obj.names',
-        "score" : 0.3,
+        "score" : 0.1,
         "iou" : 0.45,
         "model_image_size" : (416, 416),
         "gpu_num" : 1,
@@ -127,7 +126,7 @@ class YOLO(object):
             feed_dict={
                 self.yolo_model.input: image_data,
                 self.input_image_shape: [image.size[1], image.size[0]],
-                K.learning_phase(): 0
+                K.learning_phase(): 1
             })
 
         print('Found {} boxes for {}'.format(len(out_boxes), 'img'))
